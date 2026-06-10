@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bonding Simulator — ForeverMoney</title>
+<link rel="icon" type="image/svg+xml" href="assets/logo-icon.svg">
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+<style>
+:root {
+    --brand-navy:#1a2766;--brand-navy-lite:#2e3a82;--accent:#5563c9;
+    --bg:#0e1220;--bg-sidebar:#0a0f1e;--bg-raised:#151a30;
+    --text:#e6e8f0;--muted:#8088a8;--border:#252b45;
+    --green:#00CC96;--orange:#FFA15A;--red:#EF553B;
+    --font:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+}
+*{box-sizing:border-box;} html,body{margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:100vh;display:flex;}
+
+.panel{width:290px;flex-shrink:0;background:var(--bg-sidebar);border-right:1px solid var(--border);
+    padding:24px 20px;overflow-y:auto;position:sticky;top:0;height:100vh;}
+.panel h1{font-size:20px;font-weight:700;margin:0 0 4px;letter-spacing:-0.01em;}
+.panel .sub{color:var(--muted);font-size:11px;margin-bottom:20px;}
+
+.ctrl{margin-bottom:14px;}
+.ctrl label{display:block;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px;}
+.ctrl input[type=range]{width:100%;accent-color:var(--accent);margin:2px 0;}
+.ctrl input[type=number],.ctrl select{width:100%;background:var(--bg-raised);color:var(--text);border:1px solid var(--border);
+    border-radius:6px;padding:7px 10px;font-size:14px;font-family:inherit;}
+.ctrl input[type=number]:focus,.ctrl select:focus{outline:none;border-color:var(--accent);}
+.ctrl .val{float:right;color:var(--text);font-weight:600;font-size:13px;}
+.ctrl .hint{color:var(--muted);font-size:10px;margin-top:2px;}
+.slider-row{display:flex;gap:8px;align-items:center;}
+.slider-row input[type=range]{flex:1;min-width:0;}
+.slider-row input[type=number]{width:64px;flex-shrink:0;padding:4px 6px;font-size:12px;text-align:right;}
+
+.divider{border:none;border-top:1px solid var(--border);margin:16px 0;}
+
+.ref{margin-top:12px;}
+.ref-label{color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;}
+.ref-row{display:flex;justify-content:space-between;font-size:12px;padding:3px 0;}
+.ref-row .k{color:var(--muted);}
+
+.content{flex:1;padding:24px 28px;overflow-y:auto;min-width:0;}
+
+.cards{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px;}
+.card{background:var(--bg-raised);border-radius:8px;padding:12px 16px;flex:1;min-width:120px;border-left:3px solid var(--accent);}
+.card-label{color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px;}
+.card-value{font-size:18px;font-weight:700;letter-spacing:-0.01em;}
+.card-detail{color:var(--muted);font-size:11px;margin-top:3px;}
+
+.chart-wrap{background:var(--bg-raised);border-radius:8px;padding:12px;margin-bottom:20px;}
+
+table{width:100%;border-collapse:collapse;margin:0 0 20px;}
+th{text-align:left;padding:8px 10px;border-bottom:2px solid var(--border);color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:1px;font-weight:600;}
+td{padding:7px 10px;border-bottom:1px solid var(--border);font-size:12px;}
+tr:hover{background:var(--bg-raised);}
+.num{text-align:right;font-variant-numeric:tabular-nums;}
+.positive{color:var(--green);}
+.negative{color:var(--red);}
+.dim{color:var(--muted);}
+.bond-phase{border-left:3px solid var(--accent);}
+.tail-phase{border-left:3px solid transparent;opacity:0.85;}
+
+.section-title{font-size:16px;font-weight:600;margin:20px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--border);}
+.footnote{color:var(--muted);font-size:10px;text-align:center;margin-top:32px;padding-top:12px;border-top:1px solid var(--border);}
+
+@media(max-width:800px){
+    body{flex-direction:column;}
+    .panel{width:100%;height:auto;position:static;border-right:none;border-bottom:1px solid var(--border);}
+}
+</style>
+</head>
+<body>
+
+<aside class="panel">
+    <h1>Bonding Simulator</h1>
+    <div class="sub">SN98 ForeverMoney</div>
+
+    <div class="ctrl">
+        <label>Bonding Duration <span class="val" id="bondWeeksVal"></span></label>
+        <div class="slider-row">
+            <input type="range" id="bondWeeks" min="1" max="104" value="13" step="1">
+            <input type="number" id="bondWeeksNum" min="1" max="104" value="13" step="1">
+        </div>
+    </div>
+
+    <div class="ctrl">
+        <label>Chart Horizon <span class="val" id="horizonVal"></span></label>
+        <div class="slider-row">
+            <input type="range" id="horizon" min="4" max="208" value="52" step="1">
+            <input type="number" id="horizonNum" min="4" max="208" value="52" step="1">
+        </div>
+        <div class="hint">Fees continue after bonding ends</div>
+    </div>
+
+    <div class="ctrl">
+        <label>Emissions to Bond <span class="val" id="emisPctVal"></span></label>
+        <div class="slider-row">
+            <input type="range" id="emisPct" min="10" max="100" value="100" step="5">
+            <input type="number" id="emisPctNum" min="10" max="100" value="100" step="5">
+        </div>
+        <div class="hint" id="emisHint">2,952 α/day</div>
+    </div>
+
+    <div class="ctrl">
+        <label>Bond Discount <span class="val" id="discountVal"></span></label>
+        <div class="slider-row">
+            <input type="range" id="discount" min="0" max="25" value="10" step="1">
+            <input type="number" id="discountNum" min="0" max="25" value="10" step="1">
+        </div>
+    </div>
+
+    <div class="ctrl">
+        <label>Alpha Price (USD)</label>
+        <input type="number" id="alphaPrice" value="0.7451" step="0.01" min="0.01" max="10">
+    </div>
+
+    <hr class="divider">
+
+    <div class="ctrl">
+        <label>Pool <span class="val" id="poolApy"></span></label>
+        <select id="pool"></select>
+    </div>
+
+    <div class="ctrl">
+        <label>Pool Daily Fees (USD)</label>
+        <input type="number" id="dailyFees" value="8063" step="100" min="0" max="500000">
+        <div class="hint"><a id="vfatLink" href="#" target="_blank" rel="noopener" style="color:var(--accent);font-size:10px;">Source: vfat ↗</a> · avg · editable</div>
+    </div>
+
+    <div class="ctrl">
+        <label>Pool TVL (USD)</label>
+        <input type="number" id="poolTvl" value="580000" step="1000" min="1000" max="50000000">
+        <div class="hint">DexScreener spot · editable</div>
+    </div>
+
+    <div class="ctrl">
+        <label>Capital Efficiency <span class="val" id="effVal"></span></label>
+        <div class="slider-row">
+            <input type="range" id="efficiency" min="25" max="200" value="100" step="5">
+            <input type="number" id="effNum" min="25" max="200" value="100" step="5">
+        </div>
+    </div>
+
+    <hr class="divider">
+
+    <div class="ctrl">
+        <label>Daily Mining Alpha</label>
+        <input type="number" id="dailyAlpha" value="2952" step="10" min="0" max="50000">
+    </div>
+
+    <div class="ref">
+        <div class="ref-label">Reference (Jun 10, 2026)</div>
+        <div class="ref-row"><span class="k">Mining emissions</span><span>2,952 α/day</span></div>
+        <div class="ref-row"><span class="k">Alpha price</span><span>$0.7451</span></div>
+        <div class="ref-row" style="margin-top:6px;font-weight:600;"><span>Ethereum (vfat 88d avg)</span></div>
+        <div class="ref-row"><span class="k">wTAO/WETH</span><span>$8,063/d · 187%</span></div>
+        <div class="ref-row"><span class="k">wTAO/USDC</span><span>$2,782/d · 134%</span></div>
+        <div class="ref-row" style="margin-top:6px;font-weight:600;"><span>Base (vfat avg)</span></div>
+        <div class="ref-row"><span class="k">cbBTC/USDC</span><span>$4,429/d · 18%</span></div>
+        <div class="ref-row"><span class="k">WETH/USDC</span><span>$168,889/d · 748%</span></div>
+        <div class="ref-row"><span class="k">AERO/WETH</span><span>$3,705/d · 114%</span></div>
+    </div>
+</aside>
+
+<main class="content">
+    <div class="cards" id="summaryCards"></div>
+
+    <div class="chart-wrap">
+        <div id="chartAlpha" style="width:100%;height:380px;"></div>
+    </div>
+
+    <div class="section-title">Weekly Breakdown</div>
+    <table>
+        <thead><tr>
+            <th>Week</th><th class="num">α Bonded</th><th class="num">LP Cost</th>
+            <th class="num">Our TVL</th><th class="num">% of Pool</th>
+            <th class="num">Fees/Wk</th><th class="num">Cumul. Fees</th>
+            <th class="num">α Bought/Wk</th><th class="num">Cumul. α Bought</th>
+            <th class="num">α Value ($)</th><th class="num">Buyback %</th>
+        </tr></thead>
+        <tbody id="weeklyBody"></tbody>
+    </table>
+
+    <div class="footnote">
+        Assumptions: constant α price, constant pool fee rates, 100% of fees used for buyback.
+        TVL dilution modeled: our fees = pool_fees × our_lp / (pool_tvl + our_lp).
+    </div>
+</main>
+
+<script>
+const PRESETS = {
+    // Ethereum — wTAO (vfat 88d avg fees, vfat/DexScreener TVL)
+    wtao_weth:    { dailyFees: 8063,   tvl: 1577000,  chain: 1,    addr: '0x2982d3295A0E1a99e6E88Ece0E93FfDfc5c761ae' },
+    wtao_usdc:    { dailyFees: 2782,   tvl: 758000,   chain: 1,    addr: '0xf763Bb342eB3d23C02ccB86312422fe0c1c17E94' },
+    // Base — Aerodrome (vfat avg fees, DexScreener TVL)
+    cbbtc_usdc:   { dailyFees: 4429,   tvl: 9072000,  chain: 8453, addr: '0x4e962BB3889Bf030368F56810A9c96B83CB3E778' },
+    weth_usdc:    { dailyFees: 168889, tvl: 8244000,  chain: 8453, addr: '0xb2cc224c1c9feE385f8ad6a55b4d94E92359DC59' },
+    aero_weth:    { dailyFees: 3705,   tvl: 1182000,  chain: 8453, addr: '0x4e506648d493C8870f55e870480f92f2F33ecE51' },
+    custom:       { dailyFees: 5000,   tvl: 500000,   chain: 0,    addr: '' },
+};
+
+const $ = id => document.getElementById(id);
+const el = {
+    bondWeeks: $('bondWeeks'), bondWeeksNum: $('bondWeeksNum'),
+    horizon: $('horizon'), horizonNum: $('horizonNum'),
+    emisPct: $('emisPct'), emisPctNum: $('emisPctNum'),
+    discount: $('discount'), discountNum: $('discountNum'),
+    efficiency: $('efficiency'), effNum: $('effNum'),
+    alphaPrice: $('alphaPrice'),
+    pool: $('pool'), dailyFees: $('dailyFees'), poolTvl: $('poolTvl'),
+    dailyAlpha: $('dailyAlpha'),
+    bondWeeksVal: $('bondWeeksVal'), horizonVal: $('horizonVal'),
+    emisPctVal: $('emisPctVal'), emisHint: $('emisHint'),
+    discountVal: $('discountVal'), effVal: $('effVal'),
+    summaryCards: $('summaryCards'), weeklyBody: $('weeklyBody'),
+};
+
+// Sync slider ↔ number input pairs
+const PAIRS = [
+    ['bondWeeks', 'bondWeeksNum'],
+    ['horizon', 'horizonNum'],
+    ['emisPct', 'emisPctNum'],
+    ['discount', 'discountNum'],
+    ['efficiency', 'effNum'],
+];
+PAIRS.forEach(([sliderId, numId]) => {
+    const slider = $(sliderId), num = $(numId);
+    slider.addEventListener('input', () => { num.value = slider.value; });
+    num.addEventListener('input', () => { slider.value = num.value; });
+});
+
+function simulate() {
+    const bondWeeks = +el.bondWeeks.value;
+    const horizon   = +el.horizon.value;
+    const emisPct   = +el.emisPct.value / 100;
+    const discount  = +el.discount.value / 100;
+    const alphaP    = +el.alphaPrice.value;
+    const dailyFees = +el.dailyFees.value;
+    const poolTvl   = +el.poolTvl.value;
+    const eff       = +el.efficiency.value / 100;
+    const dailyA    = +el.dailyAlpha.value;
+
+    const bondPrice   = alphaP * (1 - discount);
+    const weeklyAlpha = dailyA * 7 * emisPct;
+    const weeklyLpCost = weeklyAlpha * bondPrice;
+
+    let cumLp = 0, cumFees = 0, cumBonded = 0, cumBought = 0;
+    let breakEvenWeek = null;
+    const rows = [];
+
+    const totalWeeks = Math.max(bondWeeks, horizon);
+
+    for (let w = 1; w <= totalWeeks; w++) {
+        const isBonding = w <= bondWeeks;
+
+        // Fees from LP deployed in PREVIOUS weeks (full week)
+        const shareExisting = cumLp > 0 ? cumLp / (poolTvl + cumLp) : 0;
+        const feesWk = dailyFees * 7 * shareExisting * eff;
+        cumFees += feesWk;
+
+        // Bond new LP (deployed at end of week — earns from next week)
+        let bondedThisWk = 0, lpCostThisWk = 0;
+        if (isBonding) {
+            bondedThisWk = weeklyAlpha;
+            lpCostThisWk = weeklyLpCost;
+            cumBonded += bondedThisWk;
+            cumLp     += lpCostThisWk;
+        }
+
+        const boughtWk = alphaP > 0 ? feesWk / alphaP : 0;
+        cumBought += boughtWk;
+
+        if (!breakEvenWeek && cumBonded > 0 && cumBought >= cumBonded) breakEvenWeek = w;
+
+        const poolShare = cumLp > 0 ? cumLp / (poolTvl + cumLp) * 100 : 0;
+        const alphaValueUsd = cumBought * alphaP;
+
+        rows.push({
+            w, isBonding, bondedThisWk, lpCostThisWk,
+            cumBonded, cumLp, poolShare,
+            feesWk, cumFees, boughtWk, cumBought, alphaValueUsd,
+            pct: cumBonded > 0 ? cumBought / cumBonded * 100 : 0,
+        });
+    }
+    return { rows, breakEvenWeek, weeklyLpCost, bondWeeks };
+}
+
+const fmtUsd = v => v >= 1e6 ? '$' + (v/1e6).toFixed(2) + 'M' : '$' + Math.round(v).toLocaleString();
+const fmtA   = v => Math.round(v).toLocaleString();
+const fmtPct = v => v.toFixed(1) + '%';
+
+function render() {
+    // Clamp horizon >= bondWeeks
+    const bw = +el.bondWeeks.value;
+    if (+el.horizon.value < bw) el.horizon.value = bw;
+    el.horizon.min = bw;
+
+    // Labels
+    const bwk = +el.bondWeeks.value;
+    const hwk = +el.horizon.value;
+    el.bondWeeksVal.textContent = bwk + ' wks (' + (bwk * 7 / 30.44).toFixed(1) + ' mo)';
+    el.horizonVal.textContent   = hwk + ' wks (' + (hwk * 7 / 30.44).toFixed(1) + ' mo)';
+    const dailyBonded = Math.round(+el.dailyAlpha.value * +el.emisPct.value / 100);
+    el.emisPctVal.textContent   = el.emisPct.value + '%';
+    el.emisHint.textContent     = dailyBonded.toLocaleString() + ' α/day → ' + (dailyBonded * 7).toLocaleString() + ' α/week';
+    el.discountVal.textContent  = el.discount.value + '%';
+    el.effVal.textContent       = el.efficiency.value + '%';
+
+    const { rows, breakEvenWeek, weeklyLpCost, bondWeeks } = simulate();
+    const last = rows[rows.length - 1];
+    const bondEnd = rows[bondWeeks - 1] || last;
+    const alphaP = +el.alphaPrice.value;
+
+    // Summary cards
+    const beText = breakEvenWeek ? `Week ${breakEvenWeek}` : 'Not reached';
+    const beColor = breakEvenWeek ? 'var(--green)' : 'var(--muted)';
+    const pctColor = last.pct >= 50 ? 'var(--green)' : (last.pct >= 25 ? 'var(--orange)' : 'var(--red)');
+    const netAlpha = last.cumBought - last.cumBonded;
+    const netColor = netAlpha >= 0 ? 'var(--green)' : 'var(--red)';
+
+    el.summaryCards.innerHTML = `
+        <div class="card"><div class="card-label">α Bonded</div>
+            <div class="card-value">${fmtA(last.cumBonded)} α</div>
+            <div class="card-detail">${fmtUsd(last.cumBonded * alphaP)} market value</div></div>
+        <div class="card"><div class="card-label">Peak TVL</div>
+            <div class="card-value">${fmtUsd(bondEnd.cumLp)}</div>
+            <div class="card-detail">${fmtPct(bondEnd.poolShare)} of pool</div></div>
+        <div class="card"><div class="card-label">Total Fees</div>
+            <div class="card-value">${fmtUsd(last.cumFees)}</div>
+            <div class="card-detail">${fmtUsd(last.feesWk * 52)}/yr run rate</div></div>
+        <div class="card" style="border-left-color:${pctColor};">
+            <div class="card-label">Buyback %</div>
+            <div class="card-value" style="color:${pctColor};font-size:24px;">${fmtPct(last.pct)}</div>
+            <div class="card-detail">${fmtA(last.cumBought)} α</div></div>
+        <div class="card"><div class="card-label">α Value</div>
+            <div class="card-value">${fmtUsd(last.alphaValueUsd)}</div>
+            <div class="card-detail">bought-back α at current price</div></div>
+        <div class="card" style="border-left-color:${netColor};">
+            <div class="card-label">Net α</div>
+            <div class="card-value" style="color:${netColor};">${fmtA(netAlpha)} α</div>
+            <div class="card-detail">${fmtUsd(netAlpha * alphaP)}</div></div>
+        <div class="card" style="border-left-color:${beColor};">
+            <div class="card-label">Break-even</div>
+            <div class="card-value" style="color:${beColor};">${beText}</div>
+            <div class="card-detail">${breakEvenWeek ? '~' + Math.round(breakEvenWeek * 7 / 30.44) + ' months' : '>' + el.horizon.value + ' wks'}</div></div>
+    `;
+
+    // Chart 1: α bonded vs bought back + TVL + cumulative fees (USD on right axis)
+    const wks = rows.map(r => r.w);
+    const shapes = [];
+    if (breakEvenWeek) {
+        shapes.push({ type: 'line', x0: breakEvenWeek, x1: breakEvenWeek, y0: 0, y1: 1,
+            yref: 'paper', line: { color: '#5563c9', width: 2, dash: 'dash' } });
+    }
+    shapes.push({ type: 'line', x0: bondWeeks, x1: bondWeeks, y0: 0, y1: 1,
+        yref: 'paper', line: { color: '#FFA15A', width: 1, dash: 'dot' } });
+
+    Plotly.react('chartAlpha', [
+        // α lines (left axis)
+        { x: wks, y: rows.map(r => r.cumBonded), name: 'α Bonded', type: 'scatter', mode: 'lines',
+          line: { color: '#EF553B', width: 2 } },
+        { x: wks, y: rows.map(r => r.cumBought), name: 'α Bought Back', type: 'scatter', mode: 'lines',
+          line: { color: '#00CC96', width: 3 } },
+        // USD lines (right axis)
+        { x: wks, y: rows.map(r => r.cumLp), name: 'TVL ($)', type: 'scatter', mode: 'lines',
+          line: { color: '#FFA15A', width: 2, dash: 'dash' }, yaxis: 'y2' },
+        { x: wks, y: rows.map(r => r.cumFees), name: 'Cumul. Fees ($)', type: 'scatter', mode: 'lines',
+          line: { color: '#AB63FA', width: 2, dash: 'dash' }, yaxis: 'y2' },
+    ], {
+        template: 'plotly_dark', paper_bgcolor: '#151a30', plot_bgcolor: '#151a30',
+        title: { text: 'Bonding Program Overview', font: { size: 15 } },
+        xaxis: { title: 'Week', dtick: Math.max(1, Math.floor(rows.length / 15)), gridcolor: '#252b45' },
+        yaxis: { title: 'Alpha (α)', gridcolor: '#252b45' },
+        yaxis2: { title: 'USD', overlaying: 'y', side: 'right', gridcolor: 'transparent',
+                  tickprefix: '$', titlefont: { color: '#FFA15A' }, tickfont: { color: '#FFA15A' } },
+        legend: { orientation: 'h', y: -0.18 },
+        margin: { t: 45, b: 70, l: 60, r: 70 },
+        shapes,
+        annotations: [{ x: bondWeeks, y: 1, yref: 'paper', text: 'Bonding ends', showarrow: false,
+            font: { size: 10, color: '#FFA15A' }, yshift: 10 }],
+    }, { responsive: true });
+
+
+    // Weekly table
+    let tbody = '';
+    for (const r of rows) {
+        const phase = r.isBonding ? 'bond-phase' : 'tail-phase';
+        const bondedCell = r.isBonding ? fmtA(r.bondedThisWk) : '<span class="dim">\u2014</span>';
+        const lpCostCell = r.isBonding ? fmtUsd(r.lpCostThisWk) : '<span class="dim">\u2014</span>';
+        const pctStyle = r.pct >= 100 ? 'color:var(--green);font-weight:600;' : '';
+
+        tbody += `<tr class="${phase}">
+            <td style="font-weight:600;">Wk ${r.w}</td>
+            <td class="num">${bondedCell}</td>
+            <td class="num">${lpCostCell}</td>
+            <td class="num">${fmtUsd(r.cumLp)}</td>
+            <td class="num">${fmtPct(r.poolShare)}</td>
+            <td class="num">${fmtUsd(r.feesWk)}</td>
+            <td class="num">${fmtUsd(r.cumFees)}</td>
+            <td class="num">${fmtA(r.boughtWk)}</td>
+            <td class="num">${fmtA(r.cumBought)}</td>
+            <td class="num">${fmtUsd(r.alphaValueUsd)}</td>
+            <td class="num" style="${pctStyle}">${fmtPct(r.pct)}</td>
+        </tr>`;
+    }
+    el.weeklyBody.innerHTML = tbody;
+}
+
+// Build pool dropdown with APY labels
+(function buildPoolDropdown() {
+    const groups = {
+        'Ethereum — wTAO': ['wtao_weth', 'wtao_usdc'],
+        'Base — Aerodrome': ['cbbtc_usdc', 'weth_usdc', 'aero_weth'],
+    };
+    const names = {
+        wtao_weth: 'wTAO / WETH',
+        wtao_usdc: 'wTAO / USDC',
+        cbbtc_usdc: 'cbBTC / USDC',
+        weth_usdc: 'WETH / USDC',
+        aero_weth: 'AERO / WETH',
+    };
+    const sel = el.pool;
+    for (const [groupLabel, keys] of Object.entries(groups)) {
+        const og = document.createElement('optgroup');
+        og.label = groupLabel;
+        for (const key of keys) {
+            const p = PRESETS[key];
+            const apy = (p.dailyFees / p.tvl * 365 * 100).toFixed(0);
+            const tvlM = p.tvl >= 1e6 ? (p.tvl/1e6).toFixed(1)+'M' : Math.round(p.tvl/1e3)+'K';
+            const opt = document.createElement('option');
+            opt.value = key;
+            opt.textContent = `${names[key]} — ${apy}% APY ($${tvlM})`;
+            og.appendChild(opt);
+        }
+        sel.appendChild(og);
+    }
+    const cOpt = document.createElement('option');
+    cOpt.value = 'custom'; cOpt.textContent = 'Custom';
+    sel.appendChild(cOpt);
+    sel.value = 'wtao_weth';
+})();
+
+// Pool preset switching
+function updatePoolPreset() {
+    const p = PRESETS[el.pool.value];
+    if (p) {
+        el.dailyFees.value = p.dailyFees;
+        el.poolTvl.value = p.tvl;
+        const link = document.getElementById('vfatLink');
+        if (p.addr && p.chain) {
+            link.href = 'https://info.vf.at/farm/' + p.chain + '/' + p.addr + '/' + p.addr;
+            link.style.display = '';
+        } else {
+            link.style.display = 'none';
+        }
+    }
+    // Update APY label from current inputs (works for custom overrides too)
+    const fees = +el.dailyFees.value;
+    const tvl = +el.poolTvl.value;
+    const apy = tvl > 0 ? (fees / tvl * 365 * 100).toFixed(0) : '0';
+    $('poolApy').textContent = apy + '% APY';
+    render();
+}
+el.pool.addEventListener('change', updatePoolPreset);
+updatePoolPreset();
+
+// Wire all inputs
+document.querySelectorAll('.panel input, .panel select').forEach(input => {
+    input.addEventListener('input', () => {
+        // Recalc APY label when fees/tvl change
+        const fees = +el.dailyFees.value;
+        const tvl = +el.poolTvl.value;
+        if (fees && tvl) $('poolApy').textContent = (fees / tvl * 365 * 100).toFixed(0) + '% APY';
+        render();
+    });
+});
+
+render();
+</script>
+</body></html>
