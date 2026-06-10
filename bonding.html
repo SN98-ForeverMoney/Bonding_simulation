@@ -118,20 +118,30 @@ tr:hover{background:var(--bg-raised);}
     <hr class="divider">
 
     <div class="ctrl">
-        <label>Pool <span class="val" id="poolApy"></span></label>
+        <label>Pool</label>
         <select id="pool"></select>
+        <div class="hint" id="poolAprInfo" style="margin-top:4px;line-height:1.5;"></div>
     </div>
 
     <div class="ctrl">
         <label>Pool Daily Fees (USD)</label>
         <input type="number" id="dailyFees" value="8063" step="100" min="0" max="500000">
-        <div class="hint"><a id="vfatLink" href="#" target="_blank" rel="noopener" style="color:var(--accent);font-size:10px;">Source: vfat ↗</a> · avg · editable</div>
+        <div class="hint">
+            <a id="vfatLink" href="#" target="_blank" rel="noopener" style="color:var(--accent);font-size:10px;">vfat ↗</a>
+            · <a id="dexLink" href="#" target="_blank" rel="noopener" style="color:var(--accent);font-size:10px;">DexScreener ↗</a>
+            · editable
+        </div>
+        <label id="aeroToggleWrap" style="display:none;margin-top:6px;font-size:11px;color:var(--text);cursor:pointer;text-transform:none;letter-spacing:0;">
+            <input type="checkbox" id="includeAero" style="accent-color:var(--green);vertical-align:middle;margin-right:4px;">
+            Include AERO gauge rewards
+            <span style="color:var(--muted);font-size:10px;" id="aeroExtra"></span>
+        </label>
     </div>
 
     <div class="ctrl">
         <label>Pool TVL (USD)</label>
-        <input type="number" id="poolTvl" value="580000" step="1000" min="1000" max="50000000">
-        <div class="hint">DexScreener spot · editable</div>
+        <input type="number" id="poolTvl" value="1577000" step="1000" min="1000" max="50000000">
+        <div class="hint">editable</div>
     </div>
 
     <div class="ctrl">
@@ -153,13 +163,13 @@ tr:hover{background:var(--bg-raised);}
         <div class="ref-label">Reference (Jun 10, 2026)</div>
         <div class="ref-row"><span class="k">Mining emissions</span><span>2,952 α/day</span></div>
         <div class="ref-row"><span class="k">Alpha price</span><span>$0.7451</span></div>
-        <div class="ref-row" style="margin-top:6px;font-weight:600;"><span>Ethereum (vfat 88d avg)</span></div>
-        <div class="ref-row"><span class="k">wTAO/WETH</span><span>$8,063/d · 187%</span></div>
-        <div class="ref-row"><span class="k">wTAO/USDC</span><span>$2,782/d · 134%</span></div>
-        <div class="ref-row" style="margin-top:6px;font-weight:600;"><span>Base (vfat avg)</span></div>
-        <div class="ref-row"><span class="k">cbBTC/USDC</span><span>$4,429/d · 18%</span></div>
-        <div class="ref-row"><span class="k">WETH/USDC</span><span>$168,889/d · 748%</span></div>
-        <div class="ref-row"><span class="k">AERO/WETH</span><span>$3,705/d · 114%</span></div>
+        <div class="ref-row" style="margin-top:6px;font-weight:600;"><span>30d APR (vfat) / 24h APR (Dex)</span></div>
+        <div class="ref-row"><span class="k">wTAO/WETH</span><span>187% / 373%</span></div>
+        <div class="ref-row"><span class="k">wTAO/USDC</span><span>134% / 88%</span></div>
+        <div class="ref-row"><span class="k">cbBTC/USDC</span><span>18% / 15%</span></div>
+        <div class="ref-row"><span class="k">WETH/USDC</span><span>294% / 292%</span></div>
+        <div class="ref-row"><span class="k" style="padding-left:8px;">+ AERO gauge</span><span style="color:var(--green);">748%</span></div>
+        <div class="ref-row"><span class="k">AERO/WETH</span><span>114% / 102%</span></div>
     </div>
 </aside>
 
@@ -183,21 +193,29 @@ tr:hover{background:var(--bg-raised);}
     </table>
 
     <div class="footnote">
-        Assumptions: constant α price, constant pool fee rates, 100% of fees used for buyback.
+        Simulation uses <b>30-day avg daily fees</b> from <a href="https://info.vf.at" target="_blank" rel="noopener" style="color:var(--accent);">vfat</a>
+        and pool TVL from <a href="https://dexscreener.com" target="_blank" rel="noopener" style="color:var(--accent);">DexScreener</a>.
+        Assumes constant α price, constant pool fee rates, 100% of fees used for buyback.
         TVL dilution modeled: our fees = pool_fees × our_lp / (pool_tvl + our_lp).
+        LP bonded in week N earns fees starting week N+1.
     </div>
 </main>
 
 <script>
 const PRESETS = {
-    // Ethereum — wTAO (vfat 88d avg fees, vfat/DexScreener TVL)
-    wtao_weth:    { dailyFees: 8063,   tvl: 1577000,  chain: 1,    addr: '0x2982d3295A0E1a99e6E88Ece0E93FfDfc5c761ae' },
-    wtao_usdc:    { dailyFees: 2782,   tvl: 758000,   chain: 1,    addr: '0xf763Bb342eB3d23C02ccB86312422fe0c1c17E94' },
-    // Base — Aerodrome (vfat avg fees, DexScreener TVL)
-    cbbtc_usdc:   { dailyFees: 4429,   tvl: 9072000,  chain: 8453, addr: '0x4e962BB3889Bf030368F56810A9c96B83CB3E778' },
-    weth_usdc:    { dailyFees: 168889, tvl: 8244000,  chain: 8453, addr: '0xb2cc224c1c9feE385f8ad6a55b4d94E92359DC59' },
-    aero_weth:    { dailyFees: 3705,   tvl: 1182000,  chain: 8453, addr: '0x4e506648d493C8870f55e870480f92f2F33ecE51' },
-    custom:       { dailyFees: 5000,   tvl: 500000,   chain: 0,    addr: '' },
+    // Ethereum — wTAO (vfat avg fees + DexScreener 24h)
+    wtao_weth:    { dailyFees: 8063,   tvl: 1577000,  chain: 1,    addr: '0x2982d3295A0E1a99e6E88Ece0E93FfDfc5c761ae',
+                    apr30: 187, apr24: 373, dex: 'ethereum' },
+    wtao_usdc:    { dailyFees: 2782,   tvl: 758000,   chain: 1,    addr: '0xf763Bb342eB3d23C02ccB86312422fe0c1c17E94',
+                    apr30: 134, apr24: 88, dex: 'ethereum' },
+    // Base — Aerodrome (vfat avg fees + DexScreener 24h)
+    cbbtc_usdc:   { dailyFees: 4429,   tvl: 9072000,  chain: 8453, addr: '0x4e962BB3889Bf030368F56810A9c96B83CB3E778',
+                    apr30: 18, apr24: 15, dex: 'base' },
+    weth_usdc:    { dailyFees: 66398,  dailyFeesWithAero: 168889, tvl: 8244000,  chain: 8453, addr: '0xb2cc224c1c9feE385f8ad6a55b4d94E92359DC59',
+                    apr30: 294, apr30aero: 748, apr24: 292, dex: 'base' },
+    aero_weth:    { dailyFees: 3705,   tvl: 1182000,  chain: 8453, addr: '0x4e506648d493C8870f55e870480f92f2F33ecE51',
+                    apr30: 114, apr24: 102, dex: 'base' },
+    custom:       { dailyFees: 5000,   tvl: 500000,   chain: 0,    addr: '', apr30: 0, apr24: 0, dex: '' },
 };
 
 const $ = id => document.getElementById(id);
@@ -426,11 +444,10 @@ function render() {
         og.label = groupLabel;
         for (const key of keys) {
             const p = PRESETS[key];
-            const apy = (p.dailyFees / p.tvl * 365 * 100).toFixed(0);
             const tvlM = p.tvl >= 1e6 ? (p.tvl/1e6).toFixed(1)+'M' : Math.round(p.tvl/1e3)+'K';
             const opt = document.createElement('option');
             opt.value = key;
-            opt.textContent = `${names[key]} — ${apy}% APY ($${tvlM})`;
+            opt.textContent = `${names[key]} — ${p.apr30}% APR ($${tvlM})`;
             og.appendChild(opt);
         }
         sel.appendChild(og);
@@ -442,36 +459,77 @@ function render() {
 })();
 
 // Pool preset switching
-function updatePoolPreset() {
+function updatePoolPreset(skipRender) {
     const p = PRESETS[el.pool.value];
     if (p) {
-        el.dailyFees.value = p.dailyFees;
+        // Check AERO toggle state
+        const aeroOn = $('includeAero').checked;
+        const hasAero = !!p.dailyFeesWithAero;
+
+        // Set fees based on toggle
+        el.dailyFees.value = (aeroOn && hasAero) ? p.dailyFeesWithAero : p.dailyFees;
         el.poolTvl.value = p.tvl;
-        const link = document.getElementById('vfatLink');
-        if (p.addr && p.chain) {
-            link.href = 'https://info.vf.at/farm/' + p.chain + '/' + p.addr + '/' + p.addr;
-            link.style.display = '';
+
+        // Show/hide AERO toggle
+        const wrap = $('aeroToggleWrap');
+        if (hasAero) {
+            wrap.style.display = '';
+            const extra = $('aeroExtra');
+            if (aeroOn) {
+                extra.textContent = '(+$' + Math.round(p.dailyFeesWithAero - p.dailyFees).toLocaleString() + '/d AERO)';
+            } else {
+                extra.textContent = '(swap fees only)';
+            }
         } else {
-            link.style.display = 'none';
+            wrap.style.display = 'none';
+        }
+
+        // vfat link
+        const vfat = document.getElementById('vfatLink');
+        if (p.addr && p.chain) {
+            vfat.href = 'https://info.vf.at/farm/' + p.chain + '/' + p.addr + '/' + p.addr;
+            vfat.style.display = '';
+        } else { vfat.style.display = 'none'; }
+
+        // DexScreener link
+        const dex = document.getElementById('dexLink');
+        if (p.addr && p.dex) {
+            dex.href = 'https://dexscreener.com/' + p.dex + '/' + p.addr;
+            dex.style.display = '';
+        } else { dex.style.display = 'none'; }
+
+        // APR info
+        const info = $('poolAprInfo');
+        const apr30show = (aeroOn && p.apr30aero) ? p.apr30aero : p.apr30;
+        if (apr30show || p.apr24) {
+            const vfatUrl = (p.addr && p.chain) ? 'https://info.vf.at/farm/' + p.chain + '/' + p.addr + '/' + p.addr : '#';
+            const dexUrl = (p.addr && p.dex) ? 'https://dexscreener.com/' + p.dex + '/' + p.addr : '#';
+            const aeroTag = (aeroOn && hasAero) ? ' <span style="color:var(--green);font-size:9px;">+ AERO</span>' : '';
+            info.innerHTML =
+                '30d: <b>' + apr30show + '% APR</b>' + aeroTag + ' <a href="' + vfatUrl + '" target="_blank" rel="noopener" style="color:var(--accent);">vfat ↗</a> (used in sim)<br>' +
+                '24h: <b>' + p.apr24 + '% APR</b> <a href="' + dexUrl + '" target="_blank" rel="noopener" style="color:var(--accent);">DexScreener ↗</a>';
+        } else {
+            info.textContent = '';
         }
     }
-    // Update APY label from current inputs (works for custom overrides too)
-    const fees = +el.dailyFees.value;
-    const tvl = +el.poolTvl.value;
-    const apy = tvl > 0 ? (fees / tvl * 365 * 100).toFixed(0) : '0';
-    $('poolApy').textContent = apy + '% APY';
-    render();
+    if (!skipRender) render();
 }
+
+// AERO toggle
+$('includeAero').addEventListener('change', () => updatePoolPreset());
 el.pool.addEventListener('change', updatePoolPreset);
 updatePoolPreset();
 
 // Wire all inputs
 document.querySelectorAll('.panel input, .panel select').forEach(input => {
     input.addEventListener('input', () => {
-        // Recalc APY label when fees/tvl change
+        // Recalc APR when fees/tvl change manually
         const fees = +el.dailyFees.value;
         const tvl = +el.poolTvl.value;
-        if (fees && tvl) $('poolApy').textContent = (fees / tvl * 365 * 100).toFixed(0) + '% APY';
+        if (fees && tvl) {
+            const apr = (fees / tvl * 365 * 100).toFixed(0);
+            $('poolAprInfo').innerHTML = '<span style="color:var(--text);">Current APR: ' + apr + '%</span> (from inputs)';
+        }
         render();
     });
 });
